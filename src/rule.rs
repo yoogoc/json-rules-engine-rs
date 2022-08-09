@@ -21,8 +21,7 @@ impl Rule {
     ) -> RuleResult {
         let condition_result = self.conditions.check_value(
             info,
-            #[cfg(feature = "eval")]
-            rhai_engine,
+            #[cfg(feature = "eval")] rhai_engine,
         );
 
         let mut events = self.events.clone();
@@ -33,8 +32,8 @@ impl Rule {
         {
             if let Some(coalescence_group) = coalescence_group {
                 if let Ok(new_coalescence_group) =
-                    &mut mustache::compile_str(coalescence_group)
-                        .and_then(|template| template.render_to_string(info))
+                &mut mustache::compile_str(coalescence_group)
+                    .and_then(|template| template.render_to_string(info))
                 {
                     *coalescence_group = new_coalescence_group.clone();
                 }

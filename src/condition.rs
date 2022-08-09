@@ -46,11 +46,7 @@ impl Condition {
                 let children = and
                     .iter()
                     .map(|c| {
-                        c.check_value(
-                            info,
-                            #[cfg(feature = "eval")]
-                            rhai_engine,
-                        )
+                        c.check_value(info, #[cfg(feature = "eval")] rhai_engine)
                     })
                     .inspect(|r| status = status & r.status)
                     .collect::<Vec<_>>();
@@ -65,7 +61,7 @@ impl Condition {
                 let res = c.check_value(
                     info,
                     #[cfg(feature = "eval")]
-                    rhai_engine,
+                        rhai_engine,
                 );
 
                 ConditionResult {
@@ -82,7 +78,7 @@ impl Condition {
                         c.check_value(
                             info,
                             #[cfg(feature = "eval")]
-                            rhai_engine,
+                                rhai_engine,
                         )
                     })
                     .inspect(|r| status = status | r.status)
@@ -105,7 +101,7 @@ impl Condition {
                         c.check_value(
                             info,
                             #[cfg(feature = "eval")]
-                            rhai_engine,
+                                rhai_engine,
                         )
                     })
                     .inspect(|r| {

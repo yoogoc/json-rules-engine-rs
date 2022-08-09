@@ -47,51 +47,53 @@ impl EventTrait for EmailNotification {
         params: &HashMap<String, Value>,
         facts: &(dyn Serialize + Sync),
     ) -> Result<(), Error> {
-        let api_key = ::std::env::var("SENDGRID_API_KEY")
-            .expect("You must set 'SENDGRID_API_KEY' environment variable");
+        // let api_key = ::std::env::var("SENDGRID_API_KEY")
+        //     .expect("You must set 'SENDGRID_API_KEY' environment variable");
 
-        let sender = Sender::new(api_key);
+        println!("{:#?}", params);
 
-        let tos = params.get("to").unwrap().as_array().unwrap();
-        let from = params.get("from").unwrap().to_string();
-        let mut title = params.get("title").unwrap().to_string();
-        let mut message = params.get("message").unwrap().to_string();
-
-        let value = serde_json::from_str::<Value>(
-            &serde_json::to_string(facts).unwrap(),
-        )
-        .unwrap();
-        if let Ok(tmpl) = mustache::compile_str(&message)
-            .and_then(|template| template.render_to_string(&value))
-        {
-            message = tmpl;
-        }
-
-        if let Ok(tmpl) = mustache::compile_str(&title)
-            .and_then(|template| template.render_to_string(&value))
-        {
-            title = tmpl;
-        }
-
-        let personalization = {
-            let mut p =
-                Personalization::new(SendGridEmail::new(&tos[0].to_string()));
-            for to in tos.iter().skip(1) {
-                p = p.add_to(SendGridEmail::new(to.to_string()));
-            }
-            p
-        };
-
-        let m = Message::new(SendGridEmail::new(from))
-            .set_subject(&title)
-            .add_content(
-                Content::new()
-                    .set_content_type("text/plain")
-                    .set_value(message),
-            )
-            .add_personalization(personalization);
-
-        sender.send(&m).map_err(Error::from).await?;
+        // let sender = Sender::new(api_key);
+        //
+        // let tos = params.get("to").unwrap().as_array().unwrap();
+        // let from = params.get("from").unwrap().to_string();
+        // let mut title = params.get("title").unwrap().to_string();
+        // let mut message = params.get("message").unwrap().to_string();
+        //
+        // let value = serde_json::from_str::<Value>(
+        //     &serde_json::to_string(facts).unwrap(),
+        // )
+        // .unwrap();
+        // if let Ok(tmpl) = mustache::compile_str(&message)
+        //     .and_then(|template| template.render_to_string(&value))
+        // {
+        //     message = tmpl;
+        // }
+        //
+        // if let Ok(tmpl) = mustache::compile_str(&title)
+        //     .and_then(|template| template.render_to_string(&value))
+        // {
+        //     title = tmpl;
+        // }
+        //
+        // let personalization = {
+        //     let mut p =
+        //         Personalization::new(SendGridEmail::new(&tos[0].to_string()));
+        //     for to in tos.iter().skip(1) {
+        //         p = p.add_to(SendGridEmail::new(to.to_string()));
+        //     }
+        //     p
+        // };
+        //
+        // let m = Message::new(SendGridEmail::new(from))
+        //     .set_subject(&title)
+        //     .add_content(
+        //         Content::new()
+        //             .set_content_type("text/plain")
+        //             .set_value(message),
+        //     )
+        //     .add_personalization(personalization);
+        //
+        // sender.send(&m).map_err(Error::from).await?;
 
         Ok(())
     }

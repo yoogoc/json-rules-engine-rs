@@ -94,12 +94,14 @@ use serde::Serialize;
 use std::{rc::Rc, sync::RwLock};
 
 #[cfg(feature = "eval")]
-def_package!(rhai:JsonRulesEnginePackage:"Package for json-rules-engine", lib, {
-    ArithmeticPackage::init(lib);
-    LogicPackage::init(lib);
-    BasicArrayPackage::init(lib);
-    BasicMapPackage::init(lib);
-});
+def_package! {
+    pub JsonRulesEnginePackage(lib) {
+        ArithmeticPackage::init(lib);
+        LogicPackage::init(lib);
+        BasicArrayPackage::init(lib);
+        BasicMapPackage::init(lib);
+    }
+}
 
 #[derive(Default)]
 pub struct Engine {
@@ -112,8 +114,7 @@ pub struct Engine {
 
 impl Engine {
     pub fn new() -> Self {
-        #[allow(unused_mut)]
-        let mut events: HashMap<_, Rc<RwLock<dyn EventTrait>>> = HashMap::new();
+        #[allow(unused_mut)] let mut events: HashMap<_, Rc<RwLock<dyn EventTrait>>> = HashMap::new();
 
         #[cfg(feature = "callback")]
         {
@@ -131,12 +132,9 @@ impl Engine {
 
         Self {
             rules: Vec::new(),
-            #[cfg(feature = "eval")]
-            rhai_engine: {
+            #[cfg(feature = "eval")] rhai_engine: {
                 let mut engine = RhaiEngine::new_raw();
-                engine.register_global_module(
-                    JsonRulesEnginePackage::new().as_shared_module(),
-                );
+                engine.register_global_module(JsonRulesEnginePackage::new().as_shared_module());
                 engine
             },
             coalescences: HashMap::new(),
@@ -170,25 +168,17 @@ impl Engine {
         self.events.insert(key, f);
     }
 
-    pub async fn run<T: Serialize>(
-        &mut self,
-        facts: &T,
-    ) -> Result<Vec<RuleResult>> {
+    pub async fn run<T: Serialize>(&mut self, facts: &T) -> Result<Vec<RuleResult>> {
         let facts = to_value(facts)?;
-        let mut met_rule_results: Vec<RuleResult> = self
-            .rules
-            .iter()
-            .map(|rule| {
-                rule.check_value(
-                    &facts,
-                    #[cfg(feature = "eval")]
+        let mut met_rule_results: Vec<RuleResult> = self.rules.iter().map(|rule| {
+            rule.check_value(
+                &facts,
+                #[cfg(feature = "eval")]
                     &self.rhai_engine,
-                )
-            })
-            .filter(|rule_result| {
-                rule_result.condition_result.status == Status::Met
-            })
-            .collect();
+            )
+        }).filter(|rule_result| {
+            rule_result.condition_result.status == Status::Met
+        }).collect();
 
         self.coalescences.retain(|_k, (start, expiration)| {
             start.elapsed().as_secs() < *expiration
@@ -198,16 +188,11 @@ impl Engine {
             // filter the events
             let mut cole = self.coalescences.clone();
             rule_result.events.retain(|event| {
-                if let (Some(coalescence_group), Some(coalescence)) =
-                    (&event.coalescence_group, event.coalescence)
-                {
+                if let (Some(coalescence_group), Some(coalescence)) = (&event.coalescence_group, event.coalescence) {
                     if cole.contains_key(coalescence_group) {
                         return false;
                     } else {
-                        cole.insert(
-                            coalescence_group.clone(),
-                            (Instant::now(), coalescence),
-                        );
+                        cole.insert(coalescence_group.clone(), (Instant::now(), coalescence));
                     }
                 }
 
@@ -219,21 +204,12 @@ impl Engine {
             // TODO run all the async events in parallel
             // run the events
             for event in &rule_result.events {
-                let e =
-                    self.events.get_mut(&event.event.ty).ok_or_else(|| {
-                        Error::EventError(
-                            "Event type doesn't exist".to_string(),
-                        )
-                    })?;
+                let e = self.events.get_mut(&event.event.ty).ok_or_else(|| {
+                    Error::EventError("Event type doesn't exist".to_string())
+                })?;
 
-                e.read()
-                    .unwrap()
-                    .validate(&event.event.params)
-                    .map_err(Error::EventError)?;
-                e.write()
-                    .unwrap()
-                    .trigger(&event.event.params, &facts)
-                    .await?;
+                e.read().unwrap().validate(&event.event.params).map_err(Error::EventError)?;
+                e.write().unwrap().trigger(&event.event.params, &facts).await?;
             }
         }
 
